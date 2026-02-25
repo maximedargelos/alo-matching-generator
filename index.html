@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALO — Matching Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg:#f7f7f5; --white:#fff; --border:#e4e4e0; --border2:#d0d0ca;
+    --text:#1a1a18; --text-dim:#6b6b65; --text-dimmer:#b0b0aa;
+    --accent:#2d5be3; --accent-bg:#eef2fd; --accent-border:#c2d0f8;
+    --danger:#d63b3b; --danger-bg:#fdf0f0; --danger-border:#f5c5c5;
+    --green:#1a8a4a; --green-bg:#edf7f2; --green-border:#b8e0ca;
+    --orange:#c45e00; --orange-bg:#fef5eb; --orange-border:#f5d9b0;
+    --purple:#7c3aed; --purple-bg:#f5f0ff; --purple-border:#ddd0f8;
+    --mono:'IBM Plex Mono',monospace; --sans:'Plus Jakarta Sans',sans-serif;
+    --radius:8px;
+    --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px;line-height:1.5}
+
+  /* ── Layout ── */
+  .page{max-width:820px;margin:0 auto;padding:40px 24px 80px}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:2px;margin-bottom:24px;border-bottom:2px solid var(--border);padding-bottom:0}
+  .tab{padding:8px 18px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;border-radius:6px 6px 0 0}
+  .tab:hover{color:var(--text);background:var(--white)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--white)}
+  .tab-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--accent-bg);color:var(--accent);border-radius:10px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:5px;min-width:16px}
+  .tab-content{display:none}.tab-content.active{display:block}
+
+  /* ── Header ── */
+  .header{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+  .header-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);background:var(--accent-bg);border:1px solid var(--accent-border);padding:3px 9px;border-radius:4px;letter-spacing:.06em;margin-bottom:10px}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+  .header-sub{font-size:13px;color:var(--text-dim);line-height:1.6}
+  .header-sub code{font-family:var(--mono);font-size:11px;background:#eee;border:1px solid var(--border2);padding:1px 5px;border-radius:3px;color:var(--accent)}
+
+  /* ── Card ── */
+  .card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}
+  .section-label{font-size:10px;font-weight:600;font-family:var(--mono);color:var(--text-dimmer);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-group{display:flex;flex-direction:column;gap:4px}
+  .form-group.full{grid-column:1/-1}
+  label{font-size:12px;font-weight:600;color:var(--text)}
+  label .req{color:var(--danger);margin-left:2px}
+  .hint{font-size:11px;color:var(--text-dimmer);font-family:var(--mono)}
+  input,textarea{background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 11px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;width:100%;transition:border-color .15s,box-shadow .15s}
+  input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,91,227,.1)}
+  input::placeholder,textarea::placeholder{color:var(--text-dimmer)}
+  textarea{resize:vertical;min-height:64px;line-height:1.5}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+
+  /* ── Toggle ── */
+  .toggle-row{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s,background .15s;user-select:none}
+  .toggle-row:hover{border-color:var(--border2)}
+  .toggle-row.active{background:var(--danger-bg);border-color:var(--danger-border)}
+  .toggle-box{width:15px;height:15px;border:2px solid var(--border2);border-radius:3px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;background:white;transition:all .15s}
+  .toggle-row.active .toggle-box{background:var(--danger);border-color:var(--danger)}
+  .toggle-row.active .toggle-box::after{content:'';width:7px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block}
+  .tl{font-size:13px;font-weight:600}.toggle-row.active .tl{color:var(--danger)}
+  .td{font-size:11px;color:var(--text-dim);margin-top:2px;line-height:1.5}
+
+  /* ── Check items ── */
+  .check-grid{display:flex;flex-wrap:wrap;gap:7px}
+  .check-item{display:flex;align-items:center;gap:7px;padding:7px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;user-select:none;font-size:12px;font-weight:500}
+  .check-item:hover{border-color:var(--border2);background:white}
+  .check-item.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+  .check-box{width:13px;height:13px;border:2px solid var(--border2);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all .15s}
+  .check-item.active .check-box{background:var(--accent);border-color:var(--accent)}
+  .check-item.active .check-box::after{content:'';width:7px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block}
+
+  /* ── Boutons ── */
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:white;border:none;border-radius:var(--radius);padding:10px 20px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:-.01em}
+  .btn:hover{background:#2449c4;box-shadow:var(--shadow-md)}
+  .btn:active{transform:scale(.99)}
+  .btn-ghost{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--border2);color:var(--text-dim);border-radius:6px;padding:6px 11px;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;transition:all .15s}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-copy-sel{display:none;align-items:center;gap:7px;background:var(--green);color:white;border:none;border-radius:6px;padding:7px 14px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .btn-copy-sel.visible{display:inline-flex}
+  .btn-copy-sel:hover{background:#166b3a}
+  .btn-sm{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;font-size:11px;font-weight:600;border:none;border-radius:5px;cursor:pointer;transition:all .15s}
+  .btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+  .btn-danger:hover{background:#f9e0e0}
+
+  /* ── Résultats ── */
+  #results{display:none;margin-top:20px}
+  .results-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+  .results-bar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .results-bar-right{display:flex;align-items:center;gap:8px}
+  .pill{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px}
+  .pill-blue{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+  .pill-gray{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
+  .ambiguity-notice{display:none;gap:8px;padding:10px 13px;background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--radius);font-size:12px;color:var(--danger);margin-bottom:10px;line-height:1.5}
+  .ambiguity-notice.show{display:flex}
+
+  /* ── Liste chaînes ── */
+  .chains-wrap{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+  .chains-inner{max-height:520px;overflow-y:auto}
+  .chains-inner::-webkit-scrollbar{width:4px}
+  .chains-inner::-webkit-scrollbar-track{background:var(--bg)}
+  .chains-inner::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+  .chain-item{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer;user-select:none}
+  .chain-item:last-child{border-bottom:none}
+  .chain-item:hover{background:var(--bg)}
+  .chain-item.selected{background:var(--accent-bg)}
+  .chain-item.selected:hover{background:#e4ecfc}
+
+  .sel-box{width:14px;height:14px;border:2px solid var(--border2);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:white;transition:all .12s}
+  .chain-item.selected .sel-box{background:var(--accent);border-color:var(--accent)}
+  .chain-item.selected .sel-box::after{content:'';width:7px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translateY(-1px);display:block}
+
+  /* Score de confiance */
+  .conf-dots{display:flex;gap:2px;flex-shrink:0}
+  .conf-dot{width:5px;height:5px;border-radius:50%;background:var(--border2)}
+  .conf-dot.on-5{background:#1a8a4a}
+  .conf-dot.on-4{background:#5dab4e}
+  .conf-dot.on-3{background:#c4930a}
+  .conf-dot.on-2{background:#d97b38}
+  .conf-dot.on-1{background:#d63b3b}
+
+  .chain-scope{font-family:var(--mono);font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;white-space:nowrap;flex-shrink:0;letter-spacing:.04em}
+  .scope-name{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+  .scope-name-ville{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+  .scope-name-cp{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+  .scope-special{background:#fef5ff;color:#8b3cbf;border:1px solid #e0b8f5}
+
+  .chain-expr{flex:1;display:flex;align-items:center;gap:3px;min-width:0}
+  .chain-delim{font-family:var(--mono);font-size:11px;color:var(--text-dimmer);white-space:nowrap;flex-shrink:0}
+  .chain-core{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);word-break:break-all}
+  .chain-item.selected .chain-core{color:var(--accent)}
+
+  /* Menu rejet */
+  .reject-select{display:none;font-family:var(--sans);font-size:11px;background:var(--white);border:1px solid var(--border2);border-radius:5px;padding:3px 6px;color:var(--text-dim);cursor:pointer;outline:none;flex-shrink:0}
+  .reject-select:focus{border-color:var(--danger);color:var(--danger)}
+  .chain-item:not(.selected) .reject-select{display:block}
+
+  .icopy{flex-shrink:0;background:none;border:none;color:var(--text-dimmer);cursor:pointer;padding:3px;border-radius:3px;transition:color .12s;display:flex;align-items:center;opacity:0}
+  .chain-item:hover .icopy{opacity:1}
+  .icopy:hover{color:var(--accent)}
+
+  .select-bar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim)}
+  .select-bar a{color:var(--accent);text-decoration:none;cursor:pointer;font-weight:500}
+  .select-bar a:hover{text-decoration:underline}
+
+  /* ── Test ── */
+  #test-section{display:none;margin-top:14px}
+  .score-row{display:flex;align-items:center;gap:12px;padding:11px 15px;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:9px;box-shadow:var(--shadow);font-size:12px}
+  .score-label{color:var(--text-dim);font-size:11px;white-space:nowrap}
+  .score-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+  .score-fill{height:100%;border-radius:3px;transition:width .4s ease}
+  .score-val{font-weight:700;font-size:13px;white-space:nowrap}
+  .score-cnt{color:var(--text-dimmer);font-size:11px;white-space:nowrap}
+  .test-item{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:6px;margin-bottom:3px;font-family:var(--mono);font-size:11px}
+  .ti-match{background:var(--green-bg);border:1px solid var(--green-border)}
+  .ti-miss{background:var(--bg);border:1px solid var(--border);color:var(--text-dim)}
+  .ti-badge{font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0}
+  .tb-match{color:var(--green)}.tb-miss{color:var(--danger)}
+  .ti-chain{color:var(--text-dimmer);font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ── Onglet Mémoire ── */
+  .memory-section{margin-bottom:20px}
+  .memory-section h3{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px}
+  .word-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .word-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--orange-bg);border:1px solid var(--orange-border);border-radius:20px;font-family:var(--mono);font-size:11px;color:var(--orange)}
+  .word-tag button{background:none;border:none;color:var(--orange);cursor:pointer;font-size:13px;line-height:1;padding:0;margin-left:2px;opacity:.6}
+  .word-tag button:hover{opacity:1}
+  .word-add-row{display:flex;gap:8px;align-items:center}
+  .word-add-row input{max-width:180px}
+
+  .reject-log{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+  .reject-entry{display:flex;align-items:center;gap:8px;padding:7px 11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;font-size:12px}
+  .reject-chain{font-family:var(--mono);font-size:11px;flex:1;color:var(--text-dim)}
+  .reject-reason{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;white-space:nowrap}
+  .rr-generic{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+  .rr-ambiguous{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+  .rr-redundant{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+  .rr-other{background:var(--bg);color:var(--text-dim);border:1px solid var(--border)}
+  .reject-date{font-size:10px;color:var(--text-dimmer);white-space:nowrap}
+
+  /* ── Onglet Historique ── */
+  .history-search{margin-bottom:12px}
+  .history-list{display:flex;flex-direction:column;gap:8px;max-height:500px;overflow-y:auto}
+  .history-entry{background:var(--white);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .history-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;transition:background .1s}
+  .history-header:hover{background:var(--bg)}
+  .history-merchant{font-weight:600;font-size:13px}
+  .history-meta{font-size:11px;color:var(--text-dimmer);font-family:var(--mono);margin-top:2px}
+  .history-count{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+  .history-body{display:none;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg)}
+  .history-body.open{display:block}
+  .history-chains{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+  .history-chain-tag{font-family:var(--mono);font-size:11px;background:var(--white);border:1px solid var(--border2);padding:2px 8px;border-radius:4px;color:var(--text-dim)}
+  .history-actions{display:flex;gap:8px}
+
+  /* ── Config Gist ── */
+  .gist-config{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:8px;padding:14px;margin-bottom:16px}
+  .gist-status{display:flex;align-items:center;gap:8px;font-size:12px;margin-top:8px}
+  .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .status-dot.ok{background:var(--green)}
+  .status-dot.error{background:var(--danger)}
+  .status-dot.pending{background:var(--orange);animation:pulse .8s infinite alternate}
+  @keyframes pulse{to{opacity:.4}}
+
+  /* ── Toast ── */
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:white;padding:8px 15px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:500;transform:translateY(50px);opacity:0;transition:all .25s;z-index:100;box-shadow:var(--shadow-md)}
+  .toast.show{transform:translateY(0);opacity:1}
+
+  @media(max-width:560px){.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:1}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-tag">ALO · Account-Linked Offers</div>
+    <h1>Matching Generator</h1>
+    <p class="header-sub">
+      Génère les chaînes à paramétrer, sous la forme <code>(^| )CHAINE($| )</code>.
+      Les chaînes sont scorées automatiquement — les meilleures sont pré-cochées.
+    </p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('generator')">Générateur</div>
+    <div class="tab" onclick="switchTab('memory')">Mémoire &amp; Dictionnaire <span class="tab-badge" id="badge-memory">0</span></div>
+    <div class="tab" onclick="switchTab('history')">Historique <span class="tab-badge" id="badge-history">0</span></div>
+    <div class="tab" onclick="switchTab('config')">⚙ Config</div>
+  </div>
+
+  <!-- ═══════════════════════════════ ONGLET GÉNÉRATEUR ═══════════════════════ -->
+  <div class="tab-content active" id="tab-generator">
+
+    <div class="card">
+      <div class="section-label">Informations du marchand</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nom commercial<span class="req">*</span></label>
+          <input type="text" id="nom_commercial" placeholder="ex : Les Vins du Littoral" />
+        </div>
+        <div class="form-group">
+          <label>Raison(s) sociale(s)</label>
+          <textarea id="raison_sociale" placeholder="ex : SARL THOMAL&#10;Une par ligne si plusieurs"></textarea>
+          <span class="hint">Nom déclaré au réseau CB</span>
+        </div>
+        <div class="form-group">
+          <label>Ville<span class="req">*</span></label>
+          <input type="text" id="ville" placeholder="ex : Frethun" />
+        </div>
+        <div class="form-group">
+          <label>Code postal</label>
+          <input type="text" id="cp" placeholder="ex : 62185" maxlength="5" />
+          <span class="hint">Génère des variantes avec le numéro de département</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Unicité du nom commercial</div>
+      <div class="toggle-row" id="ambiguity-toggle" onclick="toggleAmbiguity()">
+        <div class="toggle-box"></div>
+        <div>
+          <div class="tl">D'autres commerces portent le même nom en France</div>
+          <div class="td">Si activé : aucune chaîne sans ville ou code département ne sera générée.</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Options sectorielles</div>
+      <div class="check-grid">
+        <div class="check-item" data-value="station"><div class="check-box"></div>⛽ Station-service</div>
+        <div class="check-item" data-value="restauration_rapide"><div class="check-box"></div>🍔 Restauration rapide</div>
+        <div class="check-item" data-value="ecommerce"><div class="check-box"></div>🛒 E-commerce / click&amp;collect</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Tester sur des libellés réels</div>
+      <div class="form-group">
+        <label>Un libellé par ligne</label>
+        <textarea id="test_labels" style="min-height:70px" placeholder="PAIEMENT PAR CARTE X4083 LES VINS DU LITT FRETH 12/03&#10;310126 CB****0993 VINS DU LITT 62FRETHUN"></textarea>
+      </div>
+    </div>
+
+    <button class="btn" onclick="generate()">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Générer les chaînes
+    </button>
+
+    <div id="results">
+      <div class="ambiguity-notice" id="ambiguity-notice">
+        <span>⚠</span><span>Nom ambigu activé — seules les chaînes incluant la ville ou le département sont affichées.</span>
+      </div>
+
+      <div class="results-bar">
+        <div class="results-bar-left">
+          <span class="section-label" style="margin:0">Chaînes générées</span>
+          <span class="pill pill-blue" id="stat-total">0 chaînes</span>
+          <span class="pill pill-gray" id="stat-sel" style="display:none"></span>
+        </div>
+        <div class="results-bar-right">
+          <button class="btn-ghost" onclick="copyAll()">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="4" y="4" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 3v9.5A1.5 1.5 0 011.5 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Tout copier
+          </button>
+          <button class="btn-copy-sel" id="btn-copy-sel" onclick="copyAndSave()">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><rect x="4" y="4" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 3v9.5A1.5 1.5 0 011.5 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Copier &amp; enregistrer
+          </button>
+        </div>
+      </div>
+
+      <div class="chains-wrap">
+        <div class="select-bar">
+          <span>Score ●●●●● · coche tes chaînes</span>
+          <a onclick="selectAll()">Tout sélectionner</a>
+          <a onclick="selectNone()">Tout désélectionner</a>
+        </div>
+        <div class="chains-inner" id="chains-list"></div>
+      </div>
+    </div>
+
+    <div id="test-section">
+      <div class="results-bar" style="margin-top:0"><span class="section-label" style="margin:0">Test de matching</span></div>
+      <div class="score-row" id="score-row"></div>
+      <div id="test-results"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ONGLET MÉMOIRE ══════════════════════════ -->
+  <div class="tab-content" id="tab-memory">
+    <div class="card">
+      <div class="memory-section">
+        <h3>Dictionnaire de mots génériques</h3>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Ces mots réduisent le score de confiance des chaînes qui ne contiennent qu'eux. Enrichi automatiquement par tes rejets "Trop générique".</p>
+        <div class="word-list" id="generic-words-list"></div>
+        <div class="word-add-row">
+          <input type="text" id="new-generic-word" placeholder="Ajouter un mot…" style="text-transform:uppercase" />
+          <button class="btn-ghost" onclick="addGenericWord()">Ajouter</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="memory-section">
+        <h3>Journal des rejets</h3>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Chaînes que tu as décidé de ne pas utiliser, avec la raison associée. Utilisé pour ajuster les scores futurs.</p>
+        <div class="reject-log" id="reject-log"></div>
+        <div style="margin-top:10px">
+          <button class="btn-sm btn-danger" onclick="clearRejections()">Effacer tout le journal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ONGLET HISTORIQUE ═══════════════════════ -->
+  <div class="tab-content" id="tab-history">
+    <div class="card">
+      <input type="text" id="history-search" class="history-search" placeholder="Rechercher un marchand…" oninput="renderHistory()" />
+      <div class="history-list" id="history-list"></div>
+      <div style="margin-top:12px">
+        <button class="btn-sm btn-danger" onclick="clearHistory()">Effacer tout l'historique</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ONGLET CONFIG ════════════════════════════ -->
+  <div class="tab-content" id="tab-config">
+    <div class="card">
+      <div class="section-label">Stockage GitHub Gist</div>
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">
+        Pour partager la mémoire et l'historique entre collaborateurs, configure un GitHub Gist.
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=ALO+Matching+Generator" target="_blank" style="color:var(--accent)">Créer un token GitHub</a> avec le scope <code style="font-family:var(--mono);font-size:11px;background:#eee;padding:1px 4px;border-radius:3px">gist</code>.
+      </p>
+
+      <div class="gist-config">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Token GitHub</label>
+            <input type="password" id="gist-token" placeholder="ghp_xxxxxxxxxxxx" />
+          </div>
+          <div class="form-group">
+            <label>Gist ID <span style="color:var(--text-dimmer);font-weight:400">(laisse vide pour en créer un)</span></label>
+            <input type="text" id="gist-id" placeholder="a1b2c3d4e5f6…" />
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-ghost" onclick="saveGistConfig()">Enregistrer</button>
+          <button class="btn-ghost" onclick="syncGist()">🔄 Synchroniser maintenant</button>
+          <button class="btn-ghost" onclick="testGistConnection()">Tester la connexion</button>
+        </div>
+        <div class="gist-status" id="gist-status" style="display:none">
+          <div class="status-dot" id="gist-status-dot"></div>
+          <span id="gist-status-text"></span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label">Données locales</div>
+      <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Exporter ou importer toutes les données (dictionnaire, rejets, historique) en JSON.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-ghost" onclick="exportData()">⬇ Exporter JSON</button>
+        <button class="btn-ghost" onclick="document.getElementById('import-file').click()">⬆ Importer JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)" />
+        <button class="btn-sm btn-danger" onclick="resetAllData()">Tout réinitialiser</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .page -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// ÉTAT GLOBAL
+// ══════════════════════════════════════════════════════════════════════════════
+let isAmbiguous = false;
+let generatedChains = [];
+
+// Mémoire persistante (localStorage + Gist)
+let memory = {
+  genericWords: ['BAR','CAFE','VINS','BOULANGERIE','RESTAURANT','EPICERIE',
+                 'TABAC','PRESSE','PHARMACIE','FLEURISTE','COIFFEUR','PRESSING',
+                 'BIJOUTERIE','LIBRAIRIE','BOUCHERIE','POISSONNIER','TRAITEUR'],
+  rejections: [],   // [{chain, reason, date, merchant}]
+  history: [],      // [{id, merchant, ville, cp, date, chains:[]}]
+  gist: { token:'', id:'' },
+  version: 1
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PERSISTANCE LOCALE
+// ══════════════════════════════════════════════════════════════════════════════
+function loadMemory() {
+  try {
+    const raw = localStorage.getItem('alo_memory_v1');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      memory = Object.assign(memory, parsed);
+      if (!Array.isArray(memory.genericWords)) memory.genericWords = [];
+      if (!Array.isArray(memory.rejections))   memory.rejections   = [];
+      if (!Array.isArray(memory.history))       memory.history       = [];
+      if (!memory.gist) memory.gist = { token:'', id:'' };
+    }
+  } catch(e) {}
+}
+
+function saveMemory() {
+  try { localStorage.setItem('alo_memory_v1', JSON.stringify(memory)); } catch(e) {}
+  updateBadges();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SCORE DE CONFIANCE
+// ══════════════════════════════════════════════════════════════════════════════
+function computeScore(chain, scope) {
+  let score = 2; // base
+
+  // +1 si ville présente
+  if (scope === 'name+ville' || scope === 'name+cp') score += 1;
+  // +1 supplémentaire si CP (encore plus précis)
+  if (scope === 'name+cp') score += 1;
+  // +1 si chaîne longue (≥ 14 car. = moins de faux positifs)
+  if (chain.length >= 14) score += 1;
+  // −1 par mot générique connu dans la chaîne
+  const words = chain.split(' ');
+  const genericPenalty = words.filter(w => memory.genericWords.includes(w)).length;
+  score -= genericPenalty;
+  // −1 si chaîne très courte (< 8 car.)
+  if (chain.length < 8) score -= 1;
+  // Bonus si chaîne déjà utilisée par le passé (dans l'historique)
+  const usedBefore = memory.history.some(h => h.chains.includes(chain));
+  if (usedBefore) score += 1;
+  // Malus si chaîne déjà rejetée
+  const rejectedBefore = memory.rejections.some(r => r.chain === chain);
+  if (rejectedBefore) score -= 2;
+
+  return Math.max(1, Math.min(5, score));
+}
+
+function scoreColor(s) {
+  return ['','on-1','on-2','on-3','on-4','on-5'][s] || 'on-3';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GÉNÉRATION (inchangée vs v1)
+// ══════════════════════════════════════════════════════════════════════════════
+function norm(str) {
+  return str.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[''`]/g,'').replace(/\s+/g,' ').trim();
+}
+function dept(cp) {
+  if (!cp) return null;
+  const m = cp.replace(/\s/g,'').match(/^(\d{2})/);
+  return m ? m[1] : null;
+}
+function stripArticles(s) {
+  for (const a of ['LE ','LA ','LES ','L ','DU ','DE LA ','DE L ','DES ','UN ','UNE ','AU '])
+    if (s.startsWith(a)) return s.slice(a.length).trim();
+  return null;
+}
+const STOP_WORDS = new Set(['LE','LA','LES','L','DU','DE','DES','UN','UNE','AU','AUX','ET','EN','A','PAR','SUR','SOUS']);
+
+function wordTruncations(name) {
+  const result = new Set([name]);
+  const words = name.split(' ').filter(Boolean);
+  const total = words.length;
+  const minWords = total >= 4 ? 3 : 2;
+  for (let n = minWords; n < total; n++) {
+    if (!STOP_WORDS.has(words[n-1])) {
+      const frag = words.slice(0,n).join(' ');
+      if (frag !== name) result.add(frag);
+    }
+  }
+  for (const lim of [20,18,17,16,15,14,13,12]) {
+    if (name.length <= lim) continue;
+    const brute = name.slice(0,lim).trim();
+    if (brute.length >= 4 && brute.includes(' ')) result.add(brute);
+  }
+  return [...result];
+}
+
+function villeTruncs(villeN) {
+  const result = new Set([villeN]);
+  const words = villeN.split(' ').filter(Boolean);
+  for (let n = 1; n < words.length; n++) {
+    const t = words.slice(0,n).join(' ');
+    if (t.length >= 3) result.add(t);
+  }
+  for (const lim of [12,10,8,7]) {
+    if (villeN.length <= lim) continue;
+    const brute = villeN.slice(0,lim).trim();
+    if (brute.length >= 3) result.add(brute);
+  }
+  return [...result];
+}
+
+function deduplicateByRegex(chains) {
+  const sorted = [...chains].sort((a,b) => a.chain.length - b.chain.length);
+  const kept = [];
+  for (const item of sorted) {
+    if (!kept.some(k => item.chain.startsWith(k.chain + ' '))) kept.push(item);
+  }
+  return kept;
+}
+
+function generateChains({ nomCommercial, raisonSociales, ville, cp, secteurs, ambiguous }) {
+  const villeN  = norm(ville);
+  const deptNum = dept(cp);
+  const vt      = villeTruncs(villeN);
+  const baseNames = new Set();
+
+  const addName = n => {
+    if (!n || n.length < 3) return;
+    baseNames.add(n);
+    const noA = stripArticles(n);
+    if (noA && noA !== n && noA.length >= 3) baseNames.add(noA);
+  };
+  addName(norm(nomCommercial));
+  for (const rs of raisonSociales) addName(norm(rs));
+
+  const seen = new Set(), raw = [];
+  function add(chain, scope) {
+    const key = chain.trim();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    raw.push({ chain: key, scope, selected: false });
+  }
+
+  for (const baseName of baseNames) {
+    const nt = wordTruncations(baseName);
+    for (const n of nt) {
+      if (!ambiguous) add(n, 'name');
+      for (const v of vt) { add(`${n} ${v}`,'name+ville'); add(`${v} ${n}`,'name+ville'); }
+      if (deptNum) {
+        for (const v of vt) {
+          add(`${n} ${deptNum}${v}`, 'name+cp');
+          add(`${n} ${deptNum} ${v}`, 'name+cp');
+          add(`${deptNum} ${v} ${n}`, 'name+cp');
+        }
+        add(`${n} ${deptNum}`, 'name+cp');
+        add(`${deptNum} ${n}`, 'name+cp');
+      }
+    }
+  }
+
+  if (secteurs.includes('station'))
+    for (const bn of baseNames) for (const n of wordTruncations(bn)) { add(`DAC ${n}`,'special'); add(`CERTAS ${n}`,'special'); }
+  if (secteurs.includes('restauration_rapide'))
+    for (const bn of baseNames) for (const n of wordTruncations(bn)) { add(`PSI ${n}`,'special'); add(`SUMUP ${n}`,'special'); }
+  if (secteurs.includes('ecommerce'))
+    for (const bn of baseNames) for (const n of wordTruncations(bn)) add(`UEP*${n}`,'special');
+
+  const byScope = {};
+  for (const item of raw) {
+    if (!byScope[item.scope]) byScope[item.scope] = [];
+    byScope[item.scope].push(item);
+  }
+
+  let deduped = [];
+  for (const scope of ['name','name+ville','name+cp','special'])
+    if (byScope[scope]) deduped = deduped.concat(deduplicateByRegex(byScope[scope]));
+
+  // Ajouter score + tri
+  deduped.forEach(c => { c.score = computeScore(c.chain, c.scope); });
+  const order = {'name':0,'name+ville':1,'name+cp':2,'special':3};
+  deduped.sort((a,b) => {
+    const d = (order[a.scope]??9) - (order[b.scope]??9);
+    return d !== 0 ? d : b.score - a.score || a.chain.length - b.chain.length;
+  });
+  // Pré-cocher les chaînes avec score >= 4
+  deduped.forEach(c => { c.selected = c.score >= 4; });
+
+  return deduped;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDU
+// ══════════════════════════════════════════════════════════════════════════════
+const SCOPE_CFG = {
+  'name':       { label:'NOM SEUL',    cls:'scope-name' },
+  'name+ville': { label:'NOM + VILLE', cls:'scope-name-ville' },
+  'name+cp':    { label:'NOM + CP',    cls:'scope-name-cp' },
+  'special':    { label:'SPÉCIAL',     cls:'scope-special' },
+};
+
+const REJECT_REASONS = [
+  { value:'', label:'— motif de rejet —' },
+  { value:'generic', label:'Trop générique' },
+  { value:'ambiguous', label:'Ambigu sans ville' },
+  { value:'redundant', label:'Doublon / redondant' },
+  { value:'other', label:'Autre' },
+];
+
+function generate() {
+  const nomCommercial = document.getElementById('nom_commercial').value.trim();
+  const ville         = document.getElementById('ville').value.trim();
+  if (!nomCommercial || !ville) { toast('⚠ Nom commercial et ville requis'); return; }
+
+  const rsRaw          = document.getElementById('raison_sociale').value.trim();
+  const raisonSociales = rsRaw ? rsRaw.split('\n').map(s=>s.trim()).filter(Boolean) : [];
+  const cp             = document.getElementById('cp').value.trim();
+  const secteurs       = [...document.querySelectorAll('.check-item.active')].map(el=>el.dataset.value);
+  const testLabels     = document.getElementById('test_labels').value.trim();
+
+  generatedChains = generateChains({ nomCommercial, raisonSociales, ville, cp, secteurs, ambiguous: isAmbiguous });
+
+  document.getElementById('ambiguity-notice').classList.toggle('show', isAmbiguous);
+  document.getElementById('stat-total').textContent = `${generatedChains.length} chaînes`;
+
+  renderChains();
+  updateSelStats();
+
+  document.getElementById('results').style.display = 'block';
+  if (testLabels) runTest(generatedChains, testLabels);
+  else document.getElementById('test-section').style.display = 'none';
+
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderChains() {
+  const list = document.getElementById('chains-list');
+  list.innerHTML = '';
+  for (let i = 0; i < generatedChains.length; i++) {
+    const { chain, scope, selected, score } = generatedChains[i];
+    const cfg = SCOPE_CFG[scope] || { label: scope, cls:'scope-special' };
+    const sc  = scoreColor(score);
+
+    // Dots de score
+    const dots = Array.from({length:5}, (_,k) =>
+      `<div class="conf-dot${k < score ? ' '+sc : ''}"></div>`).join('');
+
+    // Options du menu rejet
+    const opts = REJECT_REASONS.map(r =>
+      `<option value="${r.value}">${r.label}</option>`).join('');
+
+    const item = document.createElement('div');
+    item.className = 'chain-item' + (selected ? ' selected' : '');
+    item.dataset.idx = i;
+    item.innerHTML = `
+      <div class="sel-box"></div>
+      <div class="conf-dots" title="Score ${score}/5">${dots}</div>
+      <span class="chain-scope ${cfg.cls}">${cfg.label}</span>
+      <div class="chain-expr">
+        <span class="chain-delim">(^|&nbsp;)</span>
+        <span class="chain-core">${escH(chain)}</span>
+        <span class="chain-delim">($|&nbsp;)</span>
+      </div>
+      <select class="reject-select" title="Motif de rejet" onchange="logRejection(${i}, this.value); this.value=''">
+        ${opts}
+      </select>
+      <button class="icopy" onclick="event.stopPropagation();copyText('(^| )${escA(chain)}($| )')" title="Copier">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="4" y="4" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 3v9.5A1.5 1.5 0 011.5 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    `;
+    item.addEventListener('click', e => {
+      if (e.target.closest('select') || e.target.closest('button')) return;
+      toggleSelect(i);
+    });
+    list.appendChild(item);
+  }
+}
+
+function toggleSelect(idx) {
+  generatedChains[idx].selected = !generatedChains[idx].selected;
+  const el = document.querySelector(`.chain-item[data-idx="${idx}"]`);
+  el.classList.toggle('selected', generatedChains[idx].selected);
+  updateSelStats();
+}
+
+function selectAll()  { generatedChains.forEach(c=>c.selected=true);  renderChains(); updateSelStats(); }
+function selectNone() { generatedChains.forEach(c=>c.selected=false); renderChains(); updateSelStats(); }
+
+function updateSelStats() {
+  const n    = generatedChains.filter(c=>c.selected).length;
+  const pill = document.getElementById('stat-sel');
+  const btn  = document.getElementById('btn-copy-sel');
+  if (n > 0) {
+    pill.textContent = `${n} sélectionnée${n>1?'s':''}`;
+    pill.style.display = 'inline-flex';
+    btn.classList.add('visible');
+    btn.textContent = `Copier & enregistrer (${n})`;
+  } else {
+    pill.style.display = 'none';
+    btn.classList.remove('visible');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REJETS
+// ══════════════════════════════════════════════════════════════════════════════
+function logRejection(idx, reason) {
+  if (!reason) return;
+  const c = generatedChains[idx];
+  // Désélectionner
+  c.selected = false;
+  document.querySelector(`.chain-item[data-idx="${idx}"]`).classList.remove('selected');
+  updateSelStats();
+
+  const merchant = document.getElementById('nom_commercial').value.trim();
+  memory.rejections.unshift({
+    chain: c.chain,
+    reason,
+    date: new Date().toLocaleDateString('fr-FR'),
+    merchant
+  });
+
+  // Si "trop générique" : extraire les mots courts significatifs et les ajouter au dictionnaire
+  if (reason === 'generic') {
+    c.chain.split(' ').forEach(w => {
+      w = w.replace(/[^A-Z]/g,'');
+      if (w.length >= 3 && w.length <= 12 && !memory.genericWords.includes(w) && !STOP_WORDS.has(w))
+        memory.genericWords.push(w);
+    });
+  }
+
+  saveMemory();
+  syncGistDebounced();
+  renderMemory();
+  toast('Rejet enregistré');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COPIER & ENREGISTRER
+// ══════════════════════════════════════════════════════════════════════════════
+function copyAll() {
+  const lines = generatedChains.map(c => `(^| )${c.chain}($| )`);
+  navigator.clipboard.writeText(lines.join('\n')).then(() => toast(`${lines.length} chaînes copiées`));
+}
+
+function copyAndSave() {
+  const sel = generatedChains.filter(c => c.selected);
+  if (!sel.length) { toast('Aucune chaîne sélectionnée'); return; }
+
+  const lines = sel.map(c => `(^| )${c.chain}($| )`);
+  navigator.clipboard.writeText(lines.join('\n'));
+
+  // Enregistrer dans l'historique
+  const merchant = document.getElementById('nom_commercial').value.trim();
+  const ville    = document.getElementById('ville').value.trim();
+  const cp       = document.getElementById('cp').value.trim();
+
+  memory.history.unshift({
+    id: Date.now(),
+    merchant, ville, cp,
+    date: new Date().toLocaleDateString('fr-FR'),
+    chains: sel.map(c => c.chain)
+  });
+
+  // Garder max 200 entrées
+  if (memory.history.length > 200) memory.history = memory.history.slice(0, 200);
+
+  saveMemory();
+  syncGistDebounced();
+  renderHistory();
+  toast(`${sel.length} chaînes copiées & enregistrées`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEST
+// ══════════════════════════════════════════════════════════════════════════════
+function runTest(chains, labelsText) {
+  const labels  = labelsText.split('\n').map(s=>s.trim()).filter(Boolean);
+  const results = [];
+  for (const label of labels) {
+    const labelN = norm(label);
+    let matched = false, matchedChain = null;
+    for (const { chain } of chains) {
+      try {
+        if (new RegExp('(^|\\s)' + escRe(chain) + '(\\s|$)', 'i').test(labelN)) {
+          matched = true; matchedChain = chain; break;
+        }
+      } catch(e) {}
+    }
+    results.push({ label, matched, matchedChain });
+  }
+  const n   = results.filter(r=>r.matched).length;
+  const pct = Math.round(n / results.length * 100);
+  const col = pct > 80 ? 'var(--green)' : pct > 50 ? 'var(--orange)' : 'var(--danger)';
+  document.getElementById('score-row').innerHTML = `
+    <span class="score-label">TAUX DE MATCH</span>
+    <div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${col}"></div></div>
+    <span class="score-val" style="color:${col}">${pct}%</span>
+    <span class="score-cnt">(${n} / ${results.length} libellés)</span>
+  `;
+  const container = document.getElementById('test-results');
+  container.innerHTML = '';
+  for (const { label, matched, matchedChain } of results) {
+    const div = document.createElement('div');
+    div.className = `test-item ${matched?'ti-match':'ti-miss'}`;
+    div.innerHTML = `
+      <span class="ti-badge ${matched?'tb-match':'tb-miss'}">${matched?'✓ MATCH':'✗ RATÉ'}</span>
+      <span style="flex:1">${escH(label)}</span>
+      ${matched?`<span class="ti-chain" title="${escA(matchedChain)}">→ ${escH(matchedChain)}</span>`:''}
+    `;
+    container.appendChild(div);
+  }
+  document.getElementById('test-section').style.display = 'block';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ONGLET MÉMOIRE
+// ══════════════════════════════════════════════════════════════════════════════
+function renderMemory() {
+  // Dictionnaire
+  const wl = document.getElementById('generic-words-list');
+  wl.innerHTML = '';
+  const sorted = [...memory.genericWords].sort();
+  sorted.forEach(w => {
+    const tag = document.createElement('div');
+    tag.className = 'word-tag';
+    tag.innerHTML = `${escH(w)} <button onclick="removeGenericWord('${escA(w)}')" title="Supprimer">×</button>`;
+    wl.appendChild(tag);
+  });
+
+  // Journal rejets
+  const rl = document.getElementById('reject-log');
+  rl.innerHTML = '';
+  if (memory.rejections.length === 0) {
+    rl.innerHTML = '<div style="font-size:12px;color:var(--text-dimmer);padding:8px">Aucun rejet enregistré.</div>';
+    return;
+  }
+  const reasonCfg = { generic:{label:'Trop générique',cls:'rr-generic'}, ambiguous:{label:'Ambigu sans ville',cls:'rr-ambiguous'}, redundant:{label:'Doublon',cls:'rr-redundant'}, other:{label:'Autre',cls:'rr-other'} };
+  memory.rejections.slice(0, 100).forEach(r => {
+    const rc = reasonCfg[r.reason] || reasonCfg.other;
+    const div = document.createElement('div');
+    div.className = 'reject-entry';
+    div.innerHTML = `
+      <span class="reject-chain">${escH(r.chain)}</span>
+      <span class="reject-reason ${rc.cls}">${rc.label}</span>
+      <span class="reject-date">${r.date}</span>
+    `;
+    rl.appendChild(div);
+  });
+}
+
+function addGenericWord() {
+  const input = document.getElementById('new-generic-word');
+  const w = norm(input.value.trim()).replace(/[^A-Z]/g,'');
+  if (!w || w.length < 2) { toast('Mot invalide'); return; }
+  if (!memory.genericWords.includes(w)) {
+    memory.genericWords.push(w);
+    saveMemory();
+    renderMemory();
+  }
+  input.value = '';
+}
+
+function removeGenericWord(w) {
+  memory.genericWords = memory.genericWords.filter(x => x !== w);
+  saveMemory();
+  renderMemory();
+}
+
+function clearRejections() {
+  if (!confirm('Effacer tout le journal des rejets ?')) return;
+  memory.rejections = [];
+  saveMemory();
+  syncGistDebounced();
+  renderMemory();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ONGLET HISTORIQUE
+// ══════════════════════════════════════════════════════════════════════════════
+function renderHistory() {
+  const search = (document.getElementById('history-search')?.value || '').toLowerCase();
+  const list   = document.getElementById('history-list');
+  list.innerHTML = '';
+
+  const filtered = memory.history.filter(h =>
+    !search || h.merchant.toLowerCase().includes(search) || h.ville.toLowerCase().includes(search)
+  );
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text-dimmer);padding:8px">Aucun historique enregistré.</div>';
+    return;
+  }
+
+  filtered.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'history-entry';
+    div.innerHTML = `
+      <div class="history-header" onclick="toggleHistoryEntry(${entry.id})">
+        <div>
+          <div class="history-merchant">${escH(entry.merchant)}</div>
+          <div class="history-meta">${escH(entry.ville)}${entry.cp?' · '+escH(entry.cp):''} · ${entry.date}</div>
+        </div>
+        <span class="history-count">${entry.chains.length} règles</span>
+      </div>
+      <div class="history-body" id="hb-${entry.id}">
+        <div class="history-chains">
+          ${entry.chains.map(c=>`<span class="history-chain-tag">${escH(c)}</span>`).join('')}
+        </div>
+        <div class="history-actions">
+          <button class="btn-ghost" onclick="reloadHistoryEntry(${entry.id})">↩ Réimporter dans le formulaire</button>
+          <button class="btn-sm btn-danger" onclick="deleteHistoryEntry(${entry.id})">Supprimer</button>
+        </div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function toggleHistoryEntry(id) {
+  const el = document.getElementById(`hb-${id}`);
+  if (el) el.classList.toggle('open');
+}
+
+function reloadHistoryEntry(id) {
+  const entry = memory.history.find(h => h.id === id);
+  if (!entry) return;
+  document.getElementById('nom_commercial').value = entry.merchant;
+  document.getElementById('ville').value          = entry.ville;
+  document.getElementById('cp').value             = entry.cp || '';
+  switchTab('generator');
+  toast('Formulaire rechargé — clique sur Générer');
+}
+
+function deleteHistoryEntry(id) {
+  memory.history = memory.history.filter(h => h.id !== id);
+  saveMemory();
+  syncGistDebounced();
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('Effacer tout l\'historique ?')) return;
+  memory.history = [];
+  saveMemory();
+  syncGistDebounced();
+  renderHistory();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GITHUB GIST
+// ══════════════════════════════════════════════════════════════════════════════
+let gistSyncTimer = null;
+function syncGistDebounced() {
+  clearTimeout(gistSyncTimer);
+  gistSyncTimer = setTimeout(() => syncGist(true), 3000);
+}
+
+function saveGistConfig() {
+  memory.gist.token = document.getElementById('gist-token').value.trim();
+  memory.gist.id    = document.getElementById('gist-id').value.trim();
+  saveMemory();
+  toast('Configuration enregistrée');
+}
+
+async function testGistConnection() {
+  const { token } = memory.gist;
+  if (!token) { toast('⚠ Renseigne d\'abord ton token'); return; }
+  setGistStatus('pending', 'Test en cours…');
+  try {
+    const r = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+    });
+    if (r.ok) {
+      const u = await r.json();
+      setGistStatus('ok', `Connecté en tant que ${u.login}`);
+    } else {
+      setGistStatus('error', `Erreur ${r.status} — token invalide ?`);
+    }
+  } catch(e) {
+    setGistStatus('error', 'Impossible de contacter GitHub');
+  }
+}
+
+async function syncGist(silent = false) {
+  const { token, id } = memory.gist;
+  if (!token) { if (!silent) toast('⚠ Token GitHub non configuré'); return; }
+
+  const payload = {
+    genericWords: memory.genericWords,
+    rejections:   memory.rejections,
+    history:      memory.history,
+  };
+
+  const files = { 'alo_matching_memory.json': { content: JSON.stringify(payload, null, 2) } };
+
+  try {
+    let res, data;
+    if (!id) {
+      // Créer un nouveau Gist
+      res = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description:'ALO Matching Generator — Memory', public: false, files })
+      });
+      data = await res.json();
+      if (data.id) {
+        memory.gist.id = data.id;
+        document.getElementById('gist-id').value = data.id;
+        saveMemory();
+        setGistStatus('ok', `Gist créé : ${data.id}`);
+        if (!silent) toast('Gist créé !');
+      }
+    } else {
+      // Mettre à jour le Gist existant
+      res = await fetch(`https://api.github.com/gists/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files })
+      });
+      if (res.ok) {
+        setGistStatus('ok', `Synchronisé — ${new Date().toLocaleTimeString('fr-FR')}`);
+        if (!silent) toast('Gist synchronisé !');
+      } else {
+        setGistStatus('error', `Erreur ${res.status}`);
+      }
+    }
+  } catch(e) {
+    setGistStatus('error', 'Erreur réseau');
+    if (!silent) toast('Erreur de synchronisation');
+  }
+}
+
+async function loadFromGist() {
+  const { token, id } = memory.gist;
+  if (!token || !id) return;
+  try {
+    const res  = await fetch(`https://api.github.com/gists/${id}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    const data = await res.json();
+    const raw  = data.files?.['alo_matching_memory.json']?.content;
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed.genericWords) memory.genericWords = parsed.genericWords;
+    if (parsed.rejections)   memory.rejections   = parsed.rejections;
+    if (parsed.history)      memory.history      = parsed.history;
+    saveMemory();
+    renderMemory();
+    renderHistory();
+    setGistStatus('ok', `Chargé depuis Gist — ${new Date().toLocaleTimeString('fr-FR')}`);
+  } catch(e) {}
+}
+
+function setGistStatus(state, msg) {
+  const wrap = document.getElementById('gist-status');
+  const dot  = document.getElementById('gist-status-dot');
+  const txt  = document.getElementById('gist-status-text');
+  wrap.style.display = 'flex';
+  dot.className = `status-dot ${state}`;
+  txt.textContent = msg;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IMPORT / EXPORT
+// ══════════════════════════════════════════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(memory, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'alo_memory.json' });
+  a.click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (parsed.genericWords) memory.genericWords = parsed.genericWords;
+      if (parsed.rejections)   memory.rejections   = parsed.rejections;
+      if (parsed.history)      memory.history      = parsed.history;
+      saveMemory();
+      renderMemory();
+      renderHistory();
+      toast('Import réussi');
+    } catch(err) { toast('Fichier JSON invalide'); }
+  };
+  reader.readAsText(file);
+}
+
+function resetAllData() {
+  if (!confirm('Réinitialiser toutes les données ? Cette action est irréversible.')) return;
+  memory.genericWords = ['BAR','CAFE','VINS','BOULANGERIE','RESTAURANT','EPICERIE','TABAC','PRESSE','PHARMACIE','FLEURISTE','COIFFEUR','PRESSING','BIJOUTERIE','LIBRAIRIE','BOUCHERIE','POISSONNIER','TRAITEUR'];
+  memory.rejections = [];
+  memory.history = [];
+  saveMemory();
+  renderMemory();
+  renderHistory();
+  toast('Données réinitialisées');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TABS + BADGES + UI
+// ══════════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['generator','memory','history','config'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'memory')  renderMemory();
+  if (name === 'history') renderHistory();
+  if (name === 'config') {
+    document.getElementById('gist-token').value = memory.gist.token || '';
+    document.getElementById('gist-id').value    = memory.gist.id    || '';
+  }
+}
+
+function updateBadges() {
+  document.getElementById('badge-memory').textContent  = memory.rejections.length + memory.genericWords.length;
+  document.getElementById('badge-history').textContent = memory.history.length;
+}
+
+function toggleAmbiguity() {
+  isAmbiguous = !isAmbiguous;
+  document.getElementById('ambiguity-toggle').classList.toggle('active', isAmbiguous);
+}
+
+document.querySelectorAll('.check-item').forEach(item => {
+  item.addEventListener('click', () => item.classList.toggle('active'));
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function escH(s)  { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escA(s)  { return s.replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+function copyText(t) { navigator.clipboard.writeText(t).then(() => toast('Copié !')); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.ctrlKey) generate(); });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════════════
+loadMemory();
+updateBadges();
+if (memory.gist.token && memory.gist.id) loadFromGist();
+</script>
+</body>
+</html>
